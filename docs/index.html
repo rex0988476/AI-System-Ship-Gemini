@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>VLEO 360 Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="static/css/style.css" />
+</head>
+
+<body>
+    <header class="page-title">
+        <div>
+            <h1>VLEO 360 Dashboard</h1>
+            <p class="page-kicker">Operator：command_center | UTC+8</p>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <section class="left-panel">
+            <div class="tabs">
+                <div class="tab active" data-tab="region">區域</div>
+                <div class="tab" data-tab="tracking">追蹤</div>
+                <div class="tab" data-tab="dispatch">派遣</div>
+            </div>
+
+            <div class="panel-content active" data-panel="left-region">
+                <div class="primary-actions">
+                    <div class="section-title">區域範圍設定</div>
+                    <div class="current-area-display">
+                        <div class="current-area-item">
+                            <span class="area-label">緯度：</span>
+                            <span class="area-value" data-current="lat">23.974</span>°N
+                        </div>
+                        <div class="current-area-item">
+                            <span class="area-label">經度：</span>
+                            <span class="area-value" data-current="lon">120.973</span>°E
+                        </div>
+                        <div class="current-area-item">
+                            <span class="area-label">範圍：</span>
+                            <span class="area-value" data-current="radius">150</span> 海里
+                        </div>
+                    </div>
+                    <button class="btn-select-region" type="button" aria-expanded="false"
+                        aria-controls="area-settings-panel">
+                        選取區域
+                    </button>
+                    <div class="area-settings" id="area-settings-panel" aria-hidden="true">
+                        <div class="area-header">
+                            <p class="area-subtitle">輸入中心點與偵測範圍</p>
+                            <button type="button" class="area-reset">重設</button>
+                        </div>
+                        <div class="area-inputs">
+                            <label>
+                                <span>緯度</span>
+                                <input type="number" step="0.001" placeholder="23.974" />
+                            </label>
+                            <label>
+                                <span>經度</span>
+                                <input type="number" step="0.001" placeholder="120.973" />
+                            </label>
+                            <label>
+                                <span>範圍 (海里)</span>
+                                <input type="number" step="1" placeholder="150" />
+                            </label>
+                        </div>
+                        <div class="area-actions">
+                            <button type="button" class="area-apply">套用設定</button>
+                        </div>
+                    </div>
+                    <div class="section-title">可疑船舶列表</div>
+                </div>
+
+                <div class="ship-list" data-ship-list="left-region"></div>
+            </div>
+
+            <div class="panel-content" data-panel="left-tracking">
+                <div class="section-title">追蹤船舶列表</div>
+                <div class="ship-list" data-ship-list="left-tracking"></div>
+            </div>
+
+            <div class="panel-content" data-panel="left-dispatch">
+                <div class="section-title">派遣任務列表</div>
+                <div class="ship-list" data-dispatch-list="left-dispatch"></div>
+            </div>
+        </section>
+
+        <section class="map-panel">
+            <div class="map-header">
+                <div>
+                    <p class="map-title">區域事件・多船地圖</p>
+                    <p class="map-subtitle">全球地圖 / 船隻點 / 歷史軌跡 / 衛星影像</p>
+                </div>
+                <div class="map-meta">
+                    <span class="map-mode">多船模式</span>
+                    <span class="meta-divider"></span>
+                    <span class="map-history">History：24h</span>
+                </div>
+            </div>
+            <div class="map-canvas">
+                <div id="sea-map" class="leaflet-map"></div>
+                <div class="map-fallback" id="map-fallback">
+                    地圖載入中…（若長時間無法顯示，請確認網路連線）
+                </div>
+                <div class="map-overlay"></div>
+                <div class="map-caption">衛星即時監控 / VLEO-360</div>
+            </div>
+        </section>
+
+        <section class="right-panel">
+            <div class="right-title" data-default-title="區域事件總覽">區域事件總覽</div>
+
+            <div class="panel-content active" data-panel="right-region">
+                <div class="info-card">
+                    <div class="info-title">區域資訊</div>
+                    <div class="info-body">
+                        區域名稱：台灣海域<br />
+                        中心座標：23.974°N, 120.973°E<br />
+                        監控範圍：150 海里<br />
+                        監控時間：14:00 – 22:00
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">暗船統計資訊</div>
+                    <div class="info-body">
+                        明船（AIS 開啟）：<span data-stat="ais-on">0</span> 艘<br />
+                        暗船（AIS 未開啟）：<span data-stat="ais-off">0</span> 艘
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">威脅統計資訊</div>
+                    <div class="info-body">
+                        高風險（≧ 80）：<span data-stat="threat-high">0</span> 艘<br />
+                        中風險（60 – 80）：<span data-stat="threat-medium">0</span> 艘<br />
+                        低風險（≦ 60）：<span data-stat="threat-low">0</span> 艘
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-content" data-panel="right-tracking">                
+                <div class="info-card">
+                    <div class="info-title">追蹤筆數</div>
+                    <div class="info-body">
+                        追蹤中：3 艘<br />
+                        待命觀察：1 艘<br />
+                        行動完成：2 艘
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">威脅統計資訊</div>
+                    <div class="info-body">
+                        高風險（≧ 80）：<span data-stat="tracking-threat-high">0</span> 艘<br />
+                        中風險（60 – 80）：<span data-stat="tracking-threat-medium">0</span> 艘<br />
+                        低風險（≦ 60）：<span data-stat="tracking-threat-low">0</span> 艘
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel-content" data-panel="right-dispatch">
+                <div class="info-card">
+                    <div class="info-title">派遣任務統計</div>
+                    <div class="info-body">
+                        進行中任務：3 件<br />
+                        已完成任務：8 件<br />
+                        平均回覆時間：22 分鐘
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">執行資源</div>
+                    <div class="info-body">
+                        海巡艦艇：4 艘（營運中）<br />
+                        空中偵巡：2 架（UAV）<br />
+                        岸基支援：3 組（雷達 / 通聯）
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-title">威脅統計資訊</div>
+                    <div class="info-body">
+                        高風險（≧ 80）：<span data-stat="dispatch-threat-high">0</span> 艘<br />
+                        中風險（60 – 80）：<span data-stat="dispatch-threat-medium">0</span> 艘<br />
+                        低風險（≦ 60）：<span data-stat="dispatch-threat-low">0</span> 艘
+                    </div>
+                </div>
+            </div>
+
+            <div class="ship-detail-panel">
+                <div class="detail-header">
+                    <button type="button" class="detail-back">← 返回列表</button>
+                    <span class="detail-mode">單船模式 / Threat Intel</span>
+                </div>
+                <div class="detail-summary">
+                    <p class="detail-label">船舶資訊簡介</p>
+                    <div class="detail-summary-header">
+                        <h3 class="detail-name" data-detail="name">-</h3>
+                        <span class="detail-score" data-detail="threatScore">0</span>
+                        <span class="detail-threat" data-detail="threatLevel">-</span>
+                    </div>
+                    <div class="detail-summary-content">
+                        <p class="detail-meta">
+                            <span data-detail="mmsi">MMSI：-</span>
+                        </p>
+                        <p class="detail-meta">
+                            <span>座標：<span data-detail="coordinates">-</span></span>
+                        </p>
+                        <p class="detail-meta">
+                            <span data-detail="ais">AIS：-</span>
+                        </p>
+                        <p class="detail-meta">
+                            <span>最新狀態：<span data-detail="status">-</span></span>
+                        </p>
+                        <p class="detail-meta">
+                            <span>最新偵測：<span data-detail="lastUpdate">-</span></span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="detail-threat-history">
+                    <div class="detail-info-card detail-threat-card">
+                        <div class="detail-info-card__title">威脅評估</div>
+                        <ul class="detail-info-list">
+                            <li>威脅分數：<span data-threat="score">-</span></li>
+                            <li>威脅等級：<span data-threat="level">-</span></li>
+                            <li>走私區域偵測：<span data-threat="smuggle">-</span></li>
+                            <li>航跡異常停留：<span data-threat="stop">-</span></li>
+                            <li>距離偏移延遲：<span data-threat="offset">-</span></li>
+                        </ul>
+                    </div>
+                    <div class="detail-info-card detail-history-card">
+                        <div class="detail-info-card__title">歷史軌跡</div>
+                        <div class="history-tags">
+                            <button type="button" data-history="0" class="history-tag active">現在</button>
+                            <button type="button" data-history="3">3 小時前</button>
+                            <button type="button" data-history="6">6 小時前</button>
+                            <button type="button" data-history="12">12 小時前</button>
+                            <button type="button" data-history="24">24 小時前</button>
+                            <button type="button" data-history="48">48 小時前</button>
+                            <button type="button" data-history="72">72 小時前</button>
+                            <button type="button" data-history="96">96 小時前</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-info-cards identity-block">
+                    <div class="detail-info-card">
+                        <div class="detail-info-card__title">身分資訊</div>
+                        <ul class="detail-info-list">
+                            <li>AIS 狀態：<span data-info="aisStatus">-</span></li>
+                            <li>種類：<span data-info="shipType">-</span></li>
+                            <li>船舶：<span data-info="shipName">-</span></li>
+                            <li>IMO：<span data-info="imo">-</span></li>
+                            <li>導航狀態：<span data-info="navStatus">-</span></li>
+                            <li>COG 航向：<span data-info="cog">-</span></li>
+                            <li>SOG 航速：<span data-info="sog">-</span></li>
+                        </ul>
+                    </div>
+                    <div class="detail-info-card">
+                        <div class="detail-info-card__title">RF 信號資訊</div>
+                        <ul class="detail-info-list">
+                            <li>座標：<span data-info="rfCoordinate">-</span></li>
+                            <li>最新偵測：<span data-info="rfTimestamp">-</span></li>
+                            <li>頻率：<span data-info="rfFrequency">-</span></li>
+                            <li>脈衝寬度：<span data-info="rfPulseWidth">-</span></li>
+                            <li>脈衝重複頻率：<span data-info="rfPrf">-</span></li>
+                            <li>準確度：<span data-info="rfAccuracy">-</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <div class="detail-section-title">操作建議</div>
+                    <div data-tracking-block class="tracking-info">
+                        <p>行動：<span data-tracking="action">衛星拍攝</span></p>
+                        <p>排程：<span data-tracking="schedule">-</span></p>
+                        <button type="button" class="detail-action confirm-action">確認派遣</button>
+                    </div>
+                    <button type="button" class="detail-action add-track">加入追蹤事件</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="static/js/shipData.js"></script>
+    <script src="static/js/dispatchData.js"></script>
+    <script src="static/js/main.js"></script>
+</body>
+
+</html>

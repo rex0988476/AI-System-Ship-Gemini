@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>暗船監控系統</title>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script> -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" /> -->
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+    <body>
+        <!-- 主介面 -->
+        <div class="system-layout hide-bottom">
+            <!-- 左側：事件列表 -->
+            <div class="events-sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-title" id="sidebarTitle">
+                        可疑船隻列表
+                    </div>
+                    <select class="area-event-selector" id="areaEventSelector" onchange="onAreaEventChange(this.value)" style="display: block;">
+                        <option value="">選擇區域事件</option>
+                    </select>
+                </div>
+
+                <!-- Tab 切換區暫時隱藏 -->
+                <!-- <div class="events-tabs">
+                    <button class="tab-btn active" data-tab="active" onclick="switchEventTab('active')">
+                        進行中 <span class="tab-count" id="activeCount">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="completed" onclick="switchEventTab('completed')">
+                        已結束 <span class="tab-count" id="completedCount">0</span>
+                    </button>
+                </div> -->
+
+                <div class="events-container" data-view="vessels">
+                    <!-- 船只列表將動態渲染於此 -->
+                </div>
+            </div>
+
+            <!-- 中間：地圖區域 -->
+            <div class="map-section">
+                <div class="map-container">
+                    <!-- Dynamic Map -->
+                    <div id="mainMap" style="width: 100%; height: 100%;"></div>
+                    <!-- 縮放重置按鈕 -->
+                    <div class="zoom-reset-btn" onclick="resetMapZoom()" title="重置地圖縮放">
+                        <span class="zoom-text">重置</span>
+                    </div>
+                    <!-- 清除地圖點按鈕 -->
+                    <!-- <div class="map-control-btn clear-points-btn" onclick="clearNonTrackPoints()" title="清除除歷史軌跡點外的所有信號點">
+                        <span class="control-text">清除信號點</span>
+                    </div> -->
+                    <!-- 恢復信號點按鈕 -->
+                    <!-- <div class="map-control-btn restore-points-btn" onclick="restoreHiddenSignalPoints()" title="恢復之前被隱藏的信號點">
+                        <span class="control-text">恢復信號點</span>
+                    </div> -->
+                    <div class="aoi-indicator"></div>
+                </div>
+            </div>
+
+            <!-- 右側：統計面板 -->
+            <div class="details-panel">
+                <div class="details-header">
+                    <div class="details-title">系統總覽</div>
+                </div>
+
+                <!-- Tab 導航 -->
+                <div class="stats-tabs">
+                    <button class="stats-tab-btn active" data-tab="area" onclick="switchStatsTab('area')">
+                        區域事件
+                    </button>
+                    <button class="stats-tab-btn" data-tab="tracking" onclick="switchStatsTab('tracking')">
+                        追蹤事件
+                    </button>
+                    <button class="stats-tab-btn" data-tab="mission" onclick="switchStatsTab('mission')">
+                        派遣事件
+                    </button>
+                </div>
+
+                <!-- Tab 內容容器 -->
+                <div class="details-content" id="detailsContent">
+                    <!-- 動態渲染統計內容 -->
+                </div>
+            </div>
+
+            <!-- 底部：任務列表與時間軸 -->
+            <div class="mission-section hidden">
+                <!-- 左側：任務列表 -->
+                <div class="mission-left">
+                    <div class="mission-header">
+                        <div class="mission-title">📋 任務列表</div>
+                        <div class="mission-stats">進行中: 2 | 已完成: 1 | 總計: 3</div>
+                    </div>
+                    <div class="mission-list">
+                    <div class="mission-card">
+                        <div class="mission-card-header">
+                            <span class="mission-type">🚁 UAV 派遣</span>
+                            <span class="mission-status status-executing">執行任務</span>
+                        </div>
+                        <div class="mission-details">
+                            目標: MMSI-416123456<br>
+                            預計完成: 09/14 16:30
+                        </div>
+                        <div class="mission-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 65%;"></div>
+                            </div>
+                            <div class="progress-text">進度: 65% | 預計 09/14 16:30 完成</div>
+                        </div>
+                    </div>
+
+                    <div class="mission-card">
+                        <div class="mission-card-header">
+                            <span class="mission-type">🛰️ 衛星重拍</span>
+                            <span class="mission-status status-dispatched">派遣</span>
+                        </div>
+                        <div class="mission-details">
+                            目標: SIG-4A7B2C<br>
+                            排程: 09/14 15:30
+                        </div>
+                        <div class="mission-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 15%;"></div>
+                            </div>
+                            <div class="progress-text">等待執行 | 預計 09/14 16:00 執行</div>
+                        </div>
+                    </div>
+
+                    <div class="mission-card">
+                        <div class="mission-card-header">
+                            <span class="mission-type">🎯 持續追蹤</span>
+                            <span class="mission-status status-completed">完成</span>
+                        </div>
+                        <div class="mission-details">
+                            目標: MMSI-416789012<br>
+                            完成時間: 09/14 14:25
+                        </div>
+                        <div class="mission-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 100%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+                            </div>
+                            <div class="progress-text">已完成 | 事件已結案</div>
+                        </div>
+                    </div> 
+                    </div>
+                </div>                  
+
+                <!-- 右側：時間軸 -->
+                <div class="mission-right">
+                    <div class="mission-header">
+                        <div class="mission-title">🕰️ 時間軸</div>
+                        <div class="mission-filter">今日 | 本週 | 所有</div>
+                    </div>
+                    <div class="mission-timeline">
+                        <div class="timeline-container">
+                            <div class="timeline-line"></div>
+                            <div class="timeline-item">
+                                <div class="timeline-time">14:25</div>
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title">🚁 MMSI-416789012</div>
+                                    <div class="timeline-desc">完成</div>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-time">15:30</div>
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title">🛰️ 衛星重拍</div>
+                                    <div class="timeline-desc">抵達</div>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-time">16:30</div>
+                                <div class="timeline-dot"></div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title">🚁 MMSI-416123456</div>
+                                    <div class="timeline-desc">執行中</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        <!-- 新增事件彈窗 -->
+        <div class="modal" id="newEventModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">➕ 新增事件卡</div>
+                    <button class="close-btn" onclick="closeEventModal()">&times;</button>
+                </div>
+                
+                <!-- 選擇事件類型 -->
+                <div class="event-type-selection">
+                    <div class="type-option" data-type="area" onclick="selectEventType('area')">
+                        <div class="type-option-header">
+                            <div class="type-icon">🗺️</div>
+                            <div class="type-title">區域監控事件</div>
+                        </div>
+                        <div class="type-description">
+                            輸入中心座標與監控半徑進行圓形區域異常RF信號偵測，系統將回傳異常列表供後續調查。
+                        </div>
+                    </div>
+                    
+                    <div class="type-option" data-type="vessel" onclick="selectEventType('vessel')">
+                        <div class="type-option-header">
+                            <div class="type-icon">🚢</div>
+                            <div class="type-title">船舶追蹤事件</div>
+                        </div>
+                        <div class="type-description">
+                            輸入船舶 MMSI，系統將提供威脅分數、決策建議以及行動選項。
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 區域監控表單 -->
+                <div class="form-section" id="areaForm">
+                    <div class="form-group">
+                        <label class="form-label">區域名稱</label>
+                        <input type="text" class="form-input" placeholder="例：南海海域" id="aoiName">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">中心座標</label>
+                        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
+                            <div style="display: flex; gap: 4px; align-items: center; flex: 1;">
+                                <label style="color: #64748b; font-size: 12px; min-width: 30px;">緯度</label>
+                                <input type="number" step="0.001" class="form-input" placeholder="23.5" id="centerLat" style="flex: 1;">
+                                <select class="form-input" id="centerLatDirection" style="width: 50px;">
+                                    <option value="N">N</option>
+                                    <option value="S">S</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 4px; align-items: center; flex: 1;">
+                                <label style="color: #64748b; font-size: 12px; min-width: 30px;">經度</label>
+                                <input type="number" step="0.001" class="form-input" placeholder="121.0" id="centerLon" style="flex: 1;">
+                                <select class="form-input" id="centerLonDirection" style="width: 50px;">
+                                    <option value="E">E</option>
+                                    <option value="W">W</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">監控半徑</label>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" step="0.1" class="form-input" placeholder="50" id="radius" min="0.1" max="1000" style="flex: 1;">
+                            <select class="form-input" id="radiusUnit" style="width: 80px;">
+                                <option value="km">公里</option>
+                                <option value="nm">海里</option>
+                            </select>
+                        </div>
+                        <small style="color: #b8c5d1; font-size: 11px; margin-top: 4px;">設定以中心座標為圓心的監控範圍</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">監控時間</label>
+                        <input type="number" class="form-input" placeholder="24" id="monitorHours" min="1" max="168"> 
+                        <small style="color: #b8c5d1; font-size: 11px; margin-top: 4px;">小時 (最長 7 天)</small>
+                    </div>
+                </div>
+                
+                <!-- 船舶追蹤表單 -->
+                <div class="form-section" id="vesselForm">
+                    <div class="form-group">
+                        <label class="form-label">MMSI</label>
+                        <input type="text" class="form-input" placeholder="例：416123456" id="vesselMMSI">
+                    </div>
+                    <!-- <div class="form-group">
+                        <label class="form-label">座標 (可選)</label>
+                        <input type="text" class="form-input" placeholder="例：24.456°N, 120.789°E" id="vesselCoords">
+                    </div> -->
+                    <!-- <div class="form-group">
+                        <label class="form-label">船舶名稱 (可選)</label>
+                        <input type="text" class="form-input" placeholder="例：漁船阿勇號" id="vesselName">
+                    </div> -->
+                </div>
+                
+                <div class="modal-actions" id="modalActions" style="display: none;">
+                    <button class="btn btn-secondary" onclick="closeEventModal()">取消</button>
+                    <button class="btn btn-primary" onclick="createNewEvent()" id="createEventBtn" disabled>建立事件</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- JavaScript -->
+        <script src="utils/safePointHelpers.js"></script>
+        <script src="ui/popups.js"></script>
+        <script src="ui/threat_assessment.js"></script>
+        <script src="map/SeaDotManager.js"></script>
+        <script src="map/HistoryTrackManager.js"></script>
+        <script src="map/MissionTrackPointManager.js"></script>
+        <script src="data/eventTypes/areaEvents.js"></script>
+        <script src="data/eventTypes/vesselEvents.js"></script>
+        <script src="data/eventStorage.js"></script>
+        <script src="utils/trackPointGenerator.js"></script>
+        <script src="utils/vesselDataGenerator.js"></script>
+        <script src="utils/threatAlertManager.js"></script>
+        <script src="utils/areaEventUpdateManager.js"></script>
+        <script src="script.js"></script>
+    </body>
+</html>

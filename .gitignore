@@ -1,0 +1,55 @@
+# ========== 全域快取 & 系統資料夾 ==========
+/.cache/
+/.claude/
+/.github/
+**__pycache__/** 
+*_old*/
+.DS_Store
+
+# ========== 專案內的快取 & 舊檔 ==========
+
+# ========== 專案內的快取 & 舊檔 ==========
+RAG/.cache/
+RAG/.claude/
+
+# 忽略資料夾 (database / rag_storage / pdfs 等)
+RAG/data/rag_database/
+RAG/data/rag_storage/
+RAG/data/prompt_database/
+RAG/data/google_patents_pdfs/
+RAG/data/ieee_papers/
+RAG/data/patent_pdfs/
+RAG/data/AI_TPM/
+RAG/data_survey/
+
+# 忽略所有 *_old 或 *old* 相關的檔案與資料夾
+RAG/**/*old*/
+RAG/*_old/*
+
+# 特定檔案不需要追蹤
+RAG/_practice.ipynb
+
+# ========== 機密檔案 ==========
+# 忽略 config 與 json 檔
+RAG/ieee_config.json
+RAG/*.json
+
+# 但保留必要的 json
+!RAG/package.json
+!RAG/requirements.json
+
+# ========== github io =========
+# 忽略 github pages 相關的檔案
+github.io/
+
+# === Backend Fastify ==========
+AI-System-Ship-Backend/
+
+# ========== Backup ==========
+# UIUX_v2_backup
+*backup*/
+
+UIUX_v2_new_UIUX/
+
+# ========== PDF 檔案 ==========
+**pdf**

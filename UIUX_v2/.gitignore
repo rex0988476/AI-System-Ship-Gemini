@@ -1,0 +1,25 @@
+
+# update plan files
+improvement
+
+# python bytecode
+api/__pycache__/
+
+# database
+dispatch.sqlite3
+
+# specific files
+Specification.pdf
+
+# test 
+tests/
+
+# deprecated - matches any directory with "deprecated" in the name
+**/deprecated/**
+**/*deprecated*/
+
+# temp files
+tmp.md
+
+# reference docs
+doc.md

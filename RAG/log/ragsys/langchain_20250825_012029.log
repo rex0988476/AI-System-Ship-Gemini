@@ -1,0 +1,20 @@
+2025-08-25 01:20:29,852 - ragsys.langchain - INFO - RAG System logging initialized
+2025-08-25 01:20:29,874 - ragsys.langchain - INFO - Initialized Google GenAI embeddings with model: gemini-embedding-001
+2025-08-25 01:20:29,880 - ragsys.langchain - INFO - Initialized LLM: google_genai/gemini-1.5-pro-latest
+2025-08-25 01:20:29,909 - chromadb.telemetry.product.posthog - INFO - Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+2025-08-25 01:20:30,574 - ragsys.langchain - INFO - Starting document processing from data/rag_database/TPM
+2025-08-25 01:20:32,613 - ragsys.langchain - INFO - Creating RAG chain
+2025-08-25 01:20:32,613 - ragsys.langchain - INFO - RAG chain created successfully
+2025-08-25 01:20:34,010 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:21:32,631 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:21:32,803 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:21:58,056 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:21:59,133 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:23:07,468 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:23:07,633 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:23:17,587 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:23:19,115 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:23:56,633 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:23:56,818 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-08-25 01:24:13,474 - google_genai.models - INFO - AFC remote call 1 is done.
+2025-08-25 01:24:14,085 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.

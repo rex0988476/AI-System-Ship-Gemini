@@ -1,0 +1,35 @@
+<section class="left-panel">
+  <div class="tabs">
+    <div class="tab active">區域</div>
+    <div class="tab">追蹤</div>
+    <div class="tab">派遣</div>
+  </div>
+
+  <div class="primary-actions">
+    <button class="btn-select-region">選取區域</button>
+    <div class="section-title">可疑船隻列表</div>
+  </div>
+
+  <div class="ship-list">
+    {% for ship in ships %}
+    <article class="ship-card {{ ship.status_level }}">
+      <div>
+        <div class="ship-label">
+          MMSI:<span>{{ ship.mmsi }}</span>
+        </div>
+        <div class="ship-detail">
+          風險分數：{{ ship.risk }}<br />
+          AIS 船名：{{ ship.ais }}<br />
+          最近位置：{{ ship.last_pos }}
+        </div>
+        <div class="chip-risk">
+          風險:<span class="value">{{ ship.risk }}</span>
+        </div>
+      </div>
+      <div>
+        <div class="status-pill">{{ ship.status }}</div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>

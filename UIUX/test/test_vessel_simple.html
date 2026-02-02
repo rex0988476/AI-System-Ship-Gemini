@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>船舶資料庫簡單測試</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: #333;
+            border-radius: 8px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: black; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #444;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .vessel-list {
+            background: #333;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .vessel-item {
+            padding: 15px;
+            border-bottom: 1px solid #555;
+            cursor: pointer;
+        }
+        .vessel-item:hover {
+            background: #444;
+        }
+        .vessel-item.high-threat {
+            border-left: 4px solid #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+        }
+        .vessel-item.medium-threat {
+            border-left: 4px solid #ffc107;
+            background: rgba(255, 193, 7, 0.1);
+        }
+        .vessel-item.low-threat {
+            border-left: 4px solid #28a745;
+            background: rgba(40, 167, 69, 0.1);
+        }
+        .vessel-name {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        .vessel-details {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-top: 5px;
+        }
+        .threat-badge {
+            float: right;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .alert {
+            background: #dc3545;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            display: none;
+        }
+        .log {
+            background: #222;
+            padding: 10px;
+            border-radius: 4px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚢 船舶資料庫測試</h1>
+
+        <div class="alert" id="threatAlert">
+            🚨 威脅警告將在此顯示
+        </div>
+
+        <div class="controls">
+            <button class="btn-success" onclick="startTest()">▶️ 開始測試</button>
+            <button class="btn-danger" onclick="stopTest()">⏸️ 停止測試</button>
+            <button class="btn-primary" onclick="refreshData()">🔄 刷新資料</button>
+            <button class="btn-warning" onclick="showThreatVessels()">⚠️ 高威脅船舶</button>
+            <button class="btn-primary" onclick="clearLog()">🗑️ 清除日誌</button>
+
+            <div style="margin-top: 10px;">
+                <strong>狀態:</strong> <span id="status">未啟動</span>
+            </div>
+        </div>
+
+        <div class="stats" id="statsContainer">
+            <!-- 統計資料 -->
+        </div>
+
+        <h3>船舶列表</h3>
+        <div class="vessel-list" id="vesselList">
+            <div style="padding: 20px; text-align: center; color: #888;">
+                點擊 "開始測試" 來載入船舶資料
+            </div>
+        </div>
+
+        <h3>系統日誌</h3>
+        <div class="log" id="logContainer">
+            <div style="color: #888;">等待系統啟動...</div>
+        </div>
+    </div>
+
+    <!-- 載入船舶資料庫 -->
+    <script src="data/vessel_database.js"></script>
+
+    <script>
+        let vesselDB = null;
+        let isTestRunning = false;
+        let updateInterval = null;
+
+        function log(message) {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString('zh-TW');
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('logContainer').innerHTML = '';
+        }
+
+        function startTest() {
+            if (isTestRunning) {
+                log('⚠️ 測試已在運行中');
+                return;
+            }
+
+            log('🚀 開始初始化船舶資料庫...');
+
+            // 等待資料庫載入
+            setTimeout(() => {
+                if (window.vesselDatabase) {
+                    vesselDB = window.vesselDatabase;
+                    isTestRunning = true;
+
+                    // 開始動態更新
+                    vesselDB.startDynamicUpdates();
+
+                    // 監聽威脅警告
+                    window.addEventListener('vesselThreatAlert', handleThreatAlert);
+
+                    // 定期更新顯示
+                    updateInterval = setInterval(refreshData, 2000);
+
+                    document.getElementById('status').textContent = '🟢 運行中';
+
+                    log(`✅ 資料庫初始化完成，載入 ${vesselDB.getAllVessels().length} 艘船舶`);
+                    log('🔄 開始即時監控...');
+
+                    refreshData();
+                } else {
+                    log('❌ 無法載入船舶資料庫');
+                }
+            }, 500);
+        }
+
+        function stopTest() {
+            if (!isTestRunning) {
+                log('⚠️ 測試未在運行');
+                return;
+            }
+
+            isTestRunning = false;
+
+            if (vesselDB) {
+                vesselDB.stopDynamicUpdates();
+            }
+
+            if (updateInterval) {
+                clearInterval(updateInterval);
+                updateInterval = null;
+            }
+
+            document.getElementById('status').textContent = '🔴 已停止';
+            log('🛑 測試已停止');
+        }
+
+        function refreshData() {
+            if (!vesselDB) return;
+
+            updateStats();
+            updateVesselList();
+        }
+
+        function updateStats() {
+            const stats = vesselDB.getStatistics();
+            const statsContainer = document.getElementById('statsContainer');
+
+            statsContainer.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${stats.total}</div>
+                    <div>總船舶數</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" style="color: #dc3545;">${stats.byThreatLevel.high}</div>
+                    <div>高威脅</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" style="color: #ffc107;">${stats.byThreatLevel.medium}</div>
+                    <div>中威脅</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${stats.aisActive}</div>
+                    <div>AIS 開啟</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" style="color: #dc3545;">${stats.aisInactive}</div>
+                    <div>AIS 關閉</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${stats.byCountry.CN || 0}</div>
+                    <div>中國船舶</div>
+                </div>
+            `;
+        }
+
+        function updateVesselList() {
+            const vessels = vesselDB.getAllVessels()
+                .sort((a, b) => b.threat.level - a.threat.level)
+                .slice(0, 20); // 只顯示前20艘
+
+            const vesselList = document.getElementById('vesselList');
+
+            vesselList.innerHTML = vessels.map(vessel => {
+                const threatClass = vessel.threat.riskCategory;
+                const threatBadgeColor = {
+                    high: '#dc3545',
+                    medium: '#ffc107',
+                    low: '#28a745'
+                }[threatClass];
+
+                return `
+                    <div class="vessel-item ${threatClass}-threat" onclick="showVesselInfo('${vessel.mmsi}')">
+                        <div class="vessel-name">
+                            ${vessel.name}
+                            <span class="threat-badge" style="background: ${threatBadgeColor};">
+                                威脅: ${vessel.threat.level}
+                            </span>
+                        </div>
+                        <div class="vessel-details">
+                            MMSI: ${vessel.mmsi} |
+                            類型: ${getTypeText(vessel.type)} |
+                            國籍: ${vessel.country} |
+                            位置: ${vessel.position.lat.toFixed(2)}°N ${vessel.position.lon.toFixed(2)}°E |
+                            速度: ${vessel.position.speed.toFixed(1)}節 |
+                            AIS: ${vessel.ais.status === 'active' ? '🟢' : '🔴'}
+                            ${vessel.threat.factors.length > 0 ? ' | ⚠️ ' + vessel.threat.factors.join(', ') : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showThreatVessels() {
+            if (!vesselDB) return;
+
+            const threatVessels = vesselDB.getVesselsByThreatLevel(60);
+            log(`⚠️ 找到 ${threatVessels.length} 艘高威脅船舶`);
+
+            threatVessels.forEach(vessel => {
+                log(`🚨 ${vessel.name} (${vessel.mmsi}) - 威脅: ${vessel.threat.level} - ${vessel.threat.factors.join(', ')}`);
+            });
+        }
+
+        function showVesselInfo(mmsi) {
+            const vessel = vesselDB.getVesselByMMSI(mmsi);
+            if (vessel) {
+                log(`🚢 船舶詳情: ${vessel.name} (${mmsi})`);
+                log(`   位置: ${vessel.position.lat.toFixed(4)}°N ${vessel.position.lon.toFixed(4)}°E`);
+                log(`   速度: ${vessel.position.speed.toFixed(1)}節 航向: ${vessel.position.course}°`);
+                log(`   威脅級別: ${vessel.threat.level} (${vessel.threat.riskCategory})`);
+                log(`   AIS: ${vessel.ais.status} 信號強度: ${vessel.ais.signalStrength.toFixed(1)}dBm`);
+                if (vessel.threat.factors.length > 0) {
+                    log(`   威脅因子: ${vessel.threat.factors.join(', ')}`);
+                }
+            }
+        }
+
+        function handleThreatAlert(event) {
+            const vessel = event.detail.vessel;
+            const alert = event.detail.alert;
+
+            // 顯示警告橫幅
+            const alertElement = document.getElementById('threatAlert');
+            alertElement.textContent = `🚨 威脅警告: ${vessel.name} (${vessel.mmsi}) - 威脅級別: ${vessel.threat.level}`;
+            alertElement.style.display = 'block';
+
+            // 記錄到日誌
+            log(`🚨 <span style="color: #dc3545; font-weight: bold;">威脅警告</span>: ${vessel.name} (${vessel.mmsi})`);
+            log(`   威脅級別: ${vessel.threat.level} 因子: ${vessel.threat.factors.join(', ')}`);
+
+            // 3秒後隱藏警告
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 3000);
+        }
+
+        function getTypeText(type) {
+            const types = {
+                cargo: '貨船',
+                fishing: '漁船',
+                tanker: '油輪',
+                passenger: '客船',
+                military: '軍艦',
+                research: '研究船'
+            };
+            return types[type] || type;
+        }
+
+        // 初始化日誌
+        log('🖥️ 系統已載入，點擊 "開始測試" 來啟動船舶監控');
+    </script>
+</body>
+</html>

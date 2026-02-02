@@ -1,0 +1,15 @@
+
+# update plan files
+improvement
+
+# python bytecode
+api/__pycache__/
+
+# database
+dispatch.sqlite3
+
+# specific files
+specification/
+
+# test 
+tests/

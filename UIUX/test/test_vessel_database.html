@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>船舶資料庫測試</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+            color: #e5e5e5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+
+        .btn-warning {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d97706;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin-left: auto;
+            font-weight: bold;
+        }
+
+        .status.running {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status.stopped {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #2563eb;
+        }
+
+        .stat-title {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .vessels-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .vessels-header {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #444;
+        }
+
+        .vessels-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-select {
+            padding: 5px 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #333;
+            color: #fff;
+        }
+
+        .vessels-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .vessel-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .vessel-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .vessel-item.threat-high {
+            border-left: 4px solid #dc2626;
+            background-color: rgba(220, 38, 38, 0.1);
+        }
+
+        .vessel-item.threat-medium {
+            border-left: 4px solid #f59e0b;
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .vessel-item.threat-low {
+            border-left: 4px solid #10b981;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+
+        .vessel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .vessel-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .vessel-mmsi {
+            font-size: 0.9em;
+            color: #999;
+        }
+
+        .threat-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .threat-high {
+            background-color: #dc2626;
+            color: white;
+        }
+
+        .threat-medium {
+            background-color: #f59e0b;
+            color: white;
+        }
+
+        .threat-low {
+            background-color: #10b981;
+            color: white;
+        }
+
+        .vessel-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .detail-label {
+            color: #999;
+        }
+
+        .detail-value {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .ais-active {
+            color: #10b981;
+        }
+
+        .ais-inactive {
+            color: #dc2626;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .alert-banner {
+            background: linear-gradient(90deg, #dc2626, #f59e0b);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚢 船舶資料庫即時監控測試</h1>
+
+        <div class="alert-banner" id="threatAlert">
+            🚨 檢測到高威脅船舶！點擊查看詳情
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="startMonitoring()">▶️ 開始監控</button>
+            <button class="btn btn-warning" onclick="stopMonitoring()">⏸️ 停止監控</button>
+            <button class="btn btn-primary" onclick="refreshData()">🔄 刷新資料</button>
+            <button class="btn btn-danger" onclick="showHighThreatOnly()">⚠️ 只顯示高威脅</button>
+            <button class="btn btn-primary" onclick="showAllVessels()">📋 顯示全部</button>
+            <div class="status stopped" id="statusIndicator">
+                🔴 監控已停止
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <!-- 統計資料將在這裡動態生成 -->
+        </div>
+
+        <div class="vessels-container">
+            <div class="vessels-header">
+                <div class="vessels-title">即時船舶資訊</div>
+                <div class="filter-controls">
+                    <select class="filter-select" id="typeFilter" onchange="filterVessels()">
+                        <option value="">所有類型</option>
+                        <option value="cargo">貨船</option>
+                        <option value="fishing">漁船</option>
+                        <option value="tanker">油輪</option>
+                        <option value="passenger">客船</option>
+                        <option value="military">軍艦</option>
+                        <option value="research">研究船</option>
+                    </select>
+                    <select class="filter-select" id="countryFilter" onchange="filterVessels()">
+                        <option value="">所有國籍</option>
+                        <option value="TW">台灣</option>
+                        <option value="CN">中國</option>
+                        <option value="JP">日本</option>
+                        <option value="KR">韓國</option>
+                        <option value="US">美國</option>
+                    </select>
+                </div>
+            </div>
+            <div class="vessels-list" id="vesselsList">
+                <div class="loading">載入船舶資料中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 載入船舶資料庫 -->
+    <script src="data/vessel_database.js"></script>
+
+    <script>
+        let currentFilter = { type: '', country: '', threatOnly: false };
+        let vesselDatabase;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 確保資料庫已載入
+            setTimeout(() => {
+                if (window.vesselDatabase) {
+                    vesselDatabase = window.vesselDatabase;
+                    refreshData();
+
+                    // 監聽威脅警告事件
+                    window.addEventListener('vesselThreatAlert', handleThreatAlert);
+
+                    console.log('✅ 船舶資料庫測試頁面已初始化');
+                } else {
+                    console.error('❌ 船舶資料庫未載入');
+                }
+            }, 1000);
+        });
+
+        function startMonitoring() {
+            if (vesselDatabase) {
+                vesselDatabase.startDynamicUpdates();
+                updateStatusIndicator(true);
+
+                // 定期刷新顯示
+                setInterval(refreshData, 3000);
+            }
+        }
+
+        function stopMonitoring() {
+            if (vesselDatabase) {
+                vesselDatabase.stopDynamicUpdates();
+                updateStatusIndicator(false);
+            }
+        }
+
+        function updateStatusIndicator(isRunning) {
+            const indicator = document.getElementById('statusIndicator');
+            if (isRunning) {
+                indicator.className = 'status running';
+                indicator.textContent = '🟢 監控運行中';
+            } else {
+                indicator.className = 'status stopped';
+                indicator.textContent = '🔴 監控已停止';
+            }
+        }
+
+        function refreshData() {
+            if (!vesselDatabase) return;
+
+            updateStatistics();
+            updateVesselsList();
+        }
+
+        function updateStatistics() {
+            const stats = vesselDatabase.getStatistics();
+            const statsGrid = document.getElementById('statsGrid');
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-title">總船舶數</div>
+                    <div class="stat-value">${stats.total}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">高威脅船舶</div>
+                    <div class="stat-value" style="color: #dc2626">${stats.byThreatLevel.high}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">AIS 開啟</div>
+                    <div class="stat-value" style="color: #10b981">${stats.aisActive}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">AIS 關閉</div>
+                    <div class="stat-value" style="color: #dc2626">${stats.aisInactive}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">中國船籍</div>
+                    <div class="stat-value">${stats.byCountry.CN || 0}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">軍用船舶</div>
+                    <div class="stat-value">${stats.byType.military || 0}</div>
+                </div>
+            `;
+        }
+
+        function updateVesselsList() {
+            let vessels = vesselDatabase.getAllVessels();
+
+            // 應用篩選
+            if (currentFilter.type) {
+                vessels = vessels.filter(v => v.type === currentFilter.type);
+            }
+            if (currentFilter.country) {
+                vessels = vessels.filter(v => v.country === currentFilter.country);
+            }
+            if (currentFilter.threatOnly) {
+                vessels = vessels.filter(v => v.threat.level > 60);
+            }
+
+            // 按威脅級別排序
+            vessels.sort((a, b) => b.threat.level - a.threat.level);
+
+            const vesselsList = document.getElementById('vesselsList');
+
+            if (vessels.length === 0) {
+                vesselsList.innerHTML = '<div class="loading">沒有符合條件的船舶</div>';
+                return;
+            }
+
+            vesselsList.innerHTML = vessels.map(vessel => {
+                const threatClass = vessel.threat.riskCategory;
+                const distanceToTaiwan = calculateDistance(vessel.position.lat, vessel.position.lon, 24.0, 120.9);
+
+                return `
+                    <div class="vessel-item threat-${threatClass}" onclick="showVesselDetails('${vessel.mmsi}')">
+                        <div class="vessel-header">
+                            <div>
+                                <div class="vessel-name">${vessel.name}</div>
+                                <div class="vessel-mmsi">MMSI: ${vessel.mmsi}</div>
+                            </div>
+                            <div class="threat-badge threat-${threatClass}">
+                                威脅: ${vessel.threat.level}
+                            </div>
+                        </div>
+                        <div class="vessel-details">
+                            <div class="detail-item">
+                                <span class="detail-label">類型:</span>
+                                <span class="detail-value">${getVesselTypeText(vessel.type)}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">國籍:</span>
+                                <span class="detail-value">${vessel.flagState}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">位置:</span>
+                                <span class="detail-value">${vessel.position.lat.toFixed(3)}°N, ${vessel.position.lon.toFixed(3)}°E</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">速度:</span>
+                                <span class="detail-value">${vessel.position.speed.toFixed(1)} 節</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">航向:</span>
+                                <span class="detail-value">${vessel.position.course.toFixed(0)}°</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">AIS:</span>
+                                <span class="detail-value ${vessel.ais.status === 'active' ? 'ais-active' : 'ais-inactive'}">
+                                    ${vessel.ais.status === 'active' ? '🟢 開啟' : '🔴 關閉'}
+                                </span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">距台灣:</span>
+                                <span class="detail-value">${distanceToTaiwan.toFixed(1)} km</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-label">最後更新:</span>
+                                <span class="detail-value">${formatTime(vessel.lastSeen)}</span>
+                            </div>
+                        </div>
+                        ${vessel.threat.factors.length > 0 ? `
+                            <div style="margin-top: 10px; color: #f59e0b;">
+                                ⚠️ ${vessel.threat.factors.join(', ')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterVessels() {
+            const typeFilter = document.getElementById('typeFilter').value;
+            const countryFilter = document.getElementById('countryFilter').value;
+
+            currentFilter.type = typeFilter;
+            currentFilter.country = countryFilter;
+
+            updateVesselsList();
+        }
+
+        function showHighThreatOnly() {
+            currentFilter.threatOnly = true;
+            updateVesselsList();
+        }
+
+        function showAllVessels() {
+            currentFilter = { type: '', country: '', threatOnly: false };
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('countryFilter').value = '';
+            updateVesselsList();
+        }
+
+        function showVesselDetails(mmsi) {
+            const vessel = vesselDatabase.getVesselByMMSI(mmsi);
+            if (vessel) {
+                alert(`船舶詳細資訊：
+名稱: ${vessel.name}
+MMSI: ${vessel.mmsi}
+類型: ${getVesselTypeText(vessel.type)}
+國籍: ${vessel.flagState}
+長度: ${vessel.specifications.length}m
+建造年份: ${vessel.specifications.buildYear}
+目的地: ${vessel.ais.destination}
+威脅級別: ${vessel.threat.level}
+威脅因子: ${vessel.threat.factors.join(', ') || '無'}
+                `);
+            }
+        }
+
+        function handleThreatAlert(event) {
+            const vessel = event.detail.vessel;
+            const alertBanner = document.getElementById('threatAlert');
+
+            alertBanner.textContent = `🚨 高威脅警告: ${vessel.name} (${vessel.mmsi}) - 威脅級別: ${vessel.threat.level}`;
+            alertBanner.style.display = 'block';
+
+            // 3秒後隱藏
+            setTimeout(() => {
+                alertBanner.style.display = 'none';
+            }, 5000);
+
+            console.log('🚨 收到威脅警告:', vessel.name, vessel.threat.level);
+        }
+
+        function getVesselTypeText(type) {
+            const types = {
+                cargo: '貨船',
+                fishing: '漁船',
+                tanker: '油輪',
+                passenger: '客船',
+                military: '軍艦',
+                research: '研究船'
+            };
+            return types[type] || type;
+        }
+
+        function formatTime(date) {
+            return new Date(date).toLocaleTimeString('zh-TW', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // 地球半徑
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+    </script>
+</body>
+</html>

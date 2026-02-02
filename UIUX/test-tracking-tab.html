@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>追蹤事件 Tab 測試指南</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #00d4ff;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #00d4ff;
+            padding-bottom: 10px;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f9f9f9;
+            border-left: 4px solid #00d4ff;
+        }
+        .expected {
+            color: #10b981;
+            font-weight: bold;
+        }
+        .code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 追蹤事件 Tab 測試指南</h1>
+
+    <div class="test-section">
+        <h2>問題描述</h2>
+        <p>建立船舶追蹤事件後，點擊追蹤事件tab，左側清單會消失。</p>
+    </div>
+
+    <div class="test-section">
+        <h2>修復內容</h2>
+        <ul>
+            <li>✅ 修復 <code>onAreaEventChange()</code> - 只在區域事件 tab 時渲染可疑船只列表</li>
+            <li>✅ 修復延遲渲染邏輯 - 檢查當前 tab 再決定是否渲染</li>
+            <li>✅ 增強 <code>switchStatsTab()</code> - 添加詳細日誌</li>
+            <li>✅ 增強 <code>renderTrackingEventsList()</code> - 添加渲染後驗證</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>測試步驟</h2>
+
+        <div class="step">
+            <strong>步驟 1：開啟瀏覽器控制台</strong>
+            <p>按 F12 開啟開發者工具，切換到 Console 標籤</p>
+        </div>
+
+        <div class="step">
+            <strong>步驟 2：檢查初始狀態</strong>
+            <p>在控制台輸入：</p>
+            <div class="code">debugAllEvents()</div>
+            <p class="expected">期望：看到區域事件和追蹤事件的數量</p>
+        </div>
+
+        <div class="step">
+            <strong>步驟 3：選擇區域事件</strong>
+            <p>從左上角下拉選單選擇 "AREA-001"</p>
+            <p class="expected">期望：左側顯示可疑船只列表</p>
+            <p>控制台應該顯示：</p>
+            <div class="code">
+🔄 [onAreaEventChange] 當前 tab: area<br>
+✅ 已渲染 X 個可疑船只
+            </div>
+        </div>
+
+        <div class="step">
+            <strong>步驟 4：建立追蹤事件</strong>
+            <p>點擊任一可疑船只的「建立追蹤」按鈕</p>
+            <p class="expected">期望：看到建立成功的日誌</p>
+            <div class="code">
+🚢 [KeepView] 建立船舶追蹤事件，RF ID: xxx<br>
+✅ [KeepView] 船舶追蹤事件建立完成，當前 tab: area
+            </div>
+        </div>
+
+        <div class="step">
+            <strong>步驟 5：驗證事件已建立</strong>
+            <p>在控制台輸入：</p>
+            <div class="code">debugAllEvents()</div>
+            <p class="expected">期望：追蹤事件數量增加 1</p>
+        </div>
+
+        <div class="step">
+            <strong>步驟 6：切換到追蹤事件 Tab</strong>
+            <p>點擊右側面板的「追蹤事件」tab</p>
+            <p class="expected">期望：左側顯示追蹤事件列表</p>
+            <p>控制台應該顯示：</p>
+            <div class="code">
+🔄 [switchStatsTab] 切換到 tracking Tab<br>
+📋 [switchStatsTab] 切換到追蹤事件 tab<br>
+🔍 [renderTrackingEventsList] 開始渲染追蹤事件列表<br>
+📦 [renderTrackingEventsList] eventStorage.events size: X<br>
+   檢查事件 vessel-001: type=vessel<br>
+📊 [renderTrackingEventsList] 找到 X 個追蹤事件<br>
+✅ 已渲染 X 個追蹤事件<br>
+🔍 [renderTrackingEventsList] 渲染後驗證:<br>
+   container 存在: true<br>
+   innerHTML 長度: XXX<br>
+   子元素數量: X
+            </div>
+        </div>
+
+        <div class="step">
+            <strong>步驟 7：驗證列表不消失</strong>
+            <p>在追蹤事件 tab 停留 2-3 秒</p>
+            <p class="expected">期望：左側追蹤事件列表保持顯示，不會消失</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>關鍵檢查點</h2>
+
+        <div class="warning">
+            <strong>⚠️ 如果左側列表仍然消失</strong>
+            <p>檢查控制台是否有以下日誌：</p>
+            <div class="code">
+🔄 [onAreaEventChange] 當前 tab: area<br>
+✅ 已渲染 X 個可疑船只
+            </div>
+            <p>如果在切換到追蹤 tab 後看到這個，表示 <code>onAreaEventChange</code> 被意外觸發了。</p>
+        </div>
+
+        <div class="success">
+            <strong>✅ 如果修復成功</strong>
+            <p>你應該看到：</p>
+            <ul>
+                <li>左側顯示追蹤事件列表（包含剛建立的事件）</li>
+                <li>每個追蹤事件顯示 MMSI、AIS 狀態、船舶類型等資訊</li>
+                <li>右側顯示追蹤事件統計資訊</li>
+                <li>列表不會在 2-3 秒後消失</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>額外測試</h2>
+
+        <div class="step">
+            <strong>測試 8：在追蹤 tab 中再建立追蹤事件</strong>
+            <ol>
+                <li>切換回區域事件 tab</li>
+                <li>點擊另一個可疑船只的「建立追蹤」</li>
+                <li>立即切換到追蹤事件 tab</li>
+            </ol>
+            <p class="expected">期望：看到新建立的追蹤事件出現在列表中</p>
+        </div>
+
+        <div class="step">
+            <strong>測試 9：點擊追蹤事件</strong>
+            <ol>
+                <li>在追蹤事件 tab 中，點擊某個追蹤事件</li>
+            </ol>
+            <p class="expected">期望：</p>
+            <ul>
+                <li>左側列表保持顯示（不重新渲染）</li>
+                <li>右側顯示該追蹤事件的詳細資訊</li>
+                <li>被選中的事件卡片有高亮效果</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>調試工具</h2>
+        <p>在控制台可以使用以下命令：</p>
+        <div class="code">
+// 檢查所有事件<br>
+debugAllEvents()<br>
+<br>
+// 檢查區域事件<br>
+debugAreaEvent()<br>
+<br>
+// 檢查 events-container<br>
+document.querySelector('.events-container').innerHTML.length<br>
+document.querySelector('.events-container').children.length
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>回報問題</h2>
+        <p>如果問題仍然存在，請提供：</p>
+        <ol>
+            <li>完整的控制台輸出（從步驟 2 到步驟 7）</li>
+            <li>在步驟 6 後立即執行 <code>document.querySelector('.events-container').innerHTML.length</code> 的結果</li>
+            <li>左側面板的截圖</li>
+        </ol>
+    </div>
+</body>
+</html>
