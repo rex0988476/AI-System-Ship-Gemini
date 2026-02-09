@@ -1,0 +1,12 @@
+## TODO
+- Improve `database.py`: remove hardcoded connection string, use `MONGO_URL` env var, add basic timeouts
+- Fix `marineTraffic/vesselPosition.py` scheduler usage: remove `while True` when using cron, or switch fully to launchd
+- Add API request backoff and rate-limit handling in `marineTraffic/vesselPosition.py`
+- Validate and parse `TIMESTAMP` in `marineTraffic/preprocess.py` (avoid string sorting)
+- Guard normalization against zero std in `marineTraffic/preprocess.py` and `bigru_preprocess.py`
+- Centralize preprocessing config (seq_len, features, train_ratio) to avoid duplicated logic
+- Consolidate windowing logic into a shared utility (avoid duplicated sliding window loops)
+- Add dataset validation and logging for dropped records in `marineTraffic/preprocess.py`
+- Add a small validation split and seed control in `bigru_train.py`
+- Save best model by validation loss in `bigru_train.py` (not only last)
+- Improve `utils/dataset_utils.py` IO: avoid reopening data file per trajectory

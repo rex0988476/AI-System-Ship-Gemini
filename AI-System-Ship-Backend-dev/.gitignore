@@ -1,0 +1,7 @@
+.DS_Store
+.env
+
+index_localhost.html
+tools/tracks_data.js
+
+node_modules

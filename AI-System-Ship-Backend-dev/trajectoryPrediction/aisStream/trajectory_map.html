@@ -1,0 +1,120 @@
+<!--
+cd trajectoryPrediction
+uv run -m http.server 8000 
+http://localhost:8000/aisStream/trajectory_map.html
+-->
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Trajectory Map</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <style>
+    #map { height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="count" style="position: absolute; top: 10px; left: 10px; background: white; padding: 6px 10px; z-index: 1000; font-family: sans-serif; font-size: 14px;">
+    Trajectories: 0
+  </div>
+  <div id="coords" style="position: absolute; top: 44px; left: 10px; background: white; padding: 6px 10px; z-index: 1000; font-family: sans-serif; font-size: 14px;">
+    Lat: -, Lon: -
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Load trajectories from JSON file
+    console.log('Loading trajectory_tmp.json...');
+    fetch('./trajectory_tmp.json')
+      .then((r) => r.json())
+      .then((data) => {
+        const trajectories = data.trajectories || [];
+        const countEl = document.getElementById('count');
+        if (countEl) countEl.textContent = `Trajectories: ${trajectories.length}`;
+        console.log('Loaded trajectories:', trajectories.length);
+        if (trajectories.length === 0) {
+          console.log('No trajectories found');
+          return;
+        }
+
+        const map = L.map('map').setView(trajectories[0][0], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 18,
+          attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        const colors = ['red', 'blue', 'green', 'orange', 'purple', 'brown', 'black'];
+        const bounds = [];
+        trajectories.forEach((points, idx) => {
+          if (!points || points.length === 0) return;
+          const color = colors[idx % colors.length];
+          const polyline = L.polyline(points, { color, weight: 6 }).addTo(map);
+          bounds.push(polyline.getBounds());
+          const start = L.circleMarker(points[0], { radius: 4, color: 'green', fill: true }).addTo(map);
+          const end = L.circleMarker(points[points.length - 1], { radius: 4, color: 'blue', fill: true }).addTo(map);
+          start.bindPopup(`Lat: ${points[0][0].toFixed(6)}, Lon: ${points[0][1].toFixed(6)}`);
+          end.bindPopup(`Lat: ${points[points.length - 1][0].toFixed(6)}, Lon: ${points[points.length - 1][1].toFixed(6)}`);
+        });
+
+        if (bounds.length > 0) {
+          const all = bounds.reduce((acc, b) => acc.extend(b), bounds[0]);
+          map.fitBounds(all);
+        }
+
+        // Draw lat/lon grid lines (simple graticule)
+        const gridLayer = L.layerGroup().addTo(map);
+        const step = 5; // degrees
+        function drawGrid() {
+          gridLayer.clearLayers();
+          const b = map.getBounds();
+          const minLat = Math.floor(b.getSouth() / step) * step;
+          const maxLat = Math.ceil(b.getNorth() / step) * step;
+          const minLon = Math.floor(b.getWest() / step) * step;
+          const maxLon = Math.ceil(b.getEast() / step) * step;
+
+          for (let lat = minLat; lat <= maxLat; lat += step) {
+            L.polyline([[lat, minLon], [lat, maxLon]], {
+              color: '#999',
+              weight: 1,
+              opacity: 0.4
+            }).addTo(gridLayer);
+          }
+          for (let lon = minLon; lon <= maxLon; lon += step) {
+            L.polyline([[minLat, lon], [maxLat, lon]], {
+              color: '#999',
+              weight: 1,
+              opacity: 0.4
+            }).addTo(gridLayer);
+          }
+        }
+        drawGrid();
+        map.on('moveend zoomend', drawGrid);
+
+        // Click map to show lat/lon
+        map.on('click', (e) => {
+          const lat = e.latlng.lat.toFixed(6);
+          const lon = e.latlng.lng.toFixed(6);
+          L.popup()
+            .setLatLng(e.latlng)
+            .setContent(`Lat: ${lat}, Lon: ${lon}`)
+            .openOn(map);
+        });
+      })
+      .catch((err) => {
+        console.error('Failed to load trajectory_tmp.json', err);
+      });
+  </script>
+</body>
+</html>
+        // Show lat/lon on mouse move
+        const coordsEl = document.getElementById('coords');
+        map.on('mousemove', (e) => {
+          if (!coordsEl) return;
+          const lat = e.latlng.lat.toFixed(6);
+          const lon = e.latlng.lng.toFixed(6);
+          coordsEl.textContent = `Lat: ${lat}, Lon: ${lon}`;
+        });

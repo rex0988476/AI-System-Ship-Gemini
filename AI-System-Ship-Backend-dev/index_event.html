@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI System Ship Backend - Event Manager</title>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; padding: 20px; line-height: 1.5; background-color: #f4f4f4; color: #333; }
+        h1 { margin-bottom: 20px; }
+        .section { margin-bottom: 24px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        button { padding: 8px 16px; cursor: pointer; border: none; border-radius: 4px; background-color: #007bff; color: white; font-size: 14px; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button.delete-btn { background-color: #dc3545; margin-left: 8px; }
+        button.delete-btn:hover { background-color: #a71d2a; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; font-weight: 600; }
+        pre { background: #f6f6f6; padding: 12px; white-space: pre-wrap; margin-top: 16px; border-radius: 4px; }
+        .status-msg { margin-top: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>AI System Ship - Event Manager</h1>
+
+    <div class="section">
+        <h2>Tracking Events</h2>
+        <button onclick="fetchTrackingAll()">🔄 Refresh Tracking Events</button>
+        <div id="trackingList"></div>
+    </div>
+
+    <div class="section">
+        <h2>Dispatch Events</h2>
+        <button onclick="fetchDispatchAll()">🔄 Refresh Dispatch Events</button>
+        <div id="dispatchList"></div>
+    </div>
+
+    <div style="text-align: center; color: #777; margin-top: 40px; font-size: 0.9em;">
+        API Endpoint: <span id="apiEndpointDisplay">...</span>
+    </div>
+
+    <script>
+        const HOST = '140.115.53.51'; // 'localhost'; //
+        const PORT = 3000;
+        
+        // 自動判斷 API 網址
+        const isLocalFile = window.location.protocol === 'file:';
+        const BASE_URL = isLocalFile 
+            ? `http://${HOST}:${PORT}/api/v1` 
+            : '/api/v1';
+
+        document.getElementById('apiEndpointDisplay').textContent = isLocalFile 
+            ? `${BASE_URL} (Local File Mode)` 
+            : `${window.location.origin}${BASE_URL} (Server Hosted Mode)`;
+
+        async function fetchTrackingAll() {
+            const container = document.getElementById('trackingList');
+            container.innerHTML = "⏳ Loading...";
+            try {
+                const res = await fetch(`${BASE_URL}/trackingEvent`);
+                if (!res.ok) throw new Error(res.statusText);
+                const data = await res.json();
+                renderTrackingTable(data);
+            } catch (err) {
+                container.innerHTML = `<div style="color:red">❌ Error: ${err.message}</div>`;
+            }
+        }
+
+        async function fetchDispatchAll() {
+            const container = document.getElementById('dispatchList');
+            container.innerHTML = "⏳ Loading...";
+            try {
+                const res = await fetch(`${BASE_URL}/dispatchEvent`);
+                if (!res.ok) throw new Error(res.statusText);
+                const data = await res.json();
+                renderDispatchTable(data);
+            } catch (err) {
+                container.innerHTML = `<div style="color:red">❌ Error: ${err.message}</div>`;
+            }
+        }
+
+        function renderTrackingTable(data) {
+            const container = document.getElementById('trackingList');
+            if (!data || data.length === 0) {
+                container.innerHTML = "<p>No tracking events found.</p>";
+                return;
+            }
+            let html = `<table><thead><tr><th>MMSI</th><th>Created At</th><th>Actions</th></tr></thead><tbody>`;
+            data.forEach(item => {
+                const createdAt = item.createAt || item.createdAt;
+                html += `<tr>
+                    <td>${item.mmsi}</td>
+                    <td>${new Date(createdAt).toLocaleString()}</td>
+                    <td><button class="delete-btn" onclick="deleteTracking('${item.mmsi}', '${encodeURIComponent(createdAt)}')">Delete</button></td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        function renderDispatchTable(data) {
+            const container = document.getElementById('dispatchList');
+            if (!data || data.length === 0) {
+                container.innerHTML = "<p>No dispatch events found.</p>";
+                return;
+            }
+            let html = `<table><thead><tr><th>ID</th><th>MMSI</th><th>Status</th><th>Time</th><th>Actions</th></tr></thead><tbody>`;
+            data.forEach(item => {
+                const dispatchTime = item.dispatchTime || '';
+                html += `<tr>
+                    <td><small>${item._id}</small></td>
+                    <td>${item.mmsi}</td>
+                    <td>${item.status || '-'}</td>
+                    <td>${dispatchTime ? new Date(dispatchTime).toLocaleString() : '-'}</td>
+                    <td><button class="delete-btn" onclick="deleteDispatch('${item.mmsi}', '${encodeURIComponent(dispatchTime)}')">Delete</button></td>
+                </tr>`;
+            });
+            html += `</tbody></table>`;
+            container.innerHTML = html;
+        }
+
+        async function deleteTracking(mmsi, encodedCreateAt) {
+            const createAt = decodeURIComponent(encodedCreateAt || '');
+            if (!confirm(`Are you sure you want to delete tracking event for MMSI: ${mmsi}?`)) return;
+            try {
+                const res = await fetch(`${BASE_URL}/trackingEvent`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mmsi, createAt })
+                });
+                if (res.ok) {
+                    // alert('✅ Deleted successfully'); // Optional: remove alert for smoother UX
+                    fetchTrackingAll();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('❌ Failed: ' + (err.message || res.statusText));
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        async function deleteDispatch(mmsi, encodedDispatchTime) {
+            const dispatchTime = decodeURIComponent(encodedDispatchTime || '');
+            if (!confirm(`Are you sure you want to delete dispatch event for MMSI: ${mmsi}?`)) return;
+            try {
+                const res = await fetch(`${BASE_URL}/dispatchEvent`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mmsi, dispatchTime })
+                });
+                if (res.ok) {
+                    // alert('✅ Deleted successfully');
+                    fetchDispatchAll();
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    alert('❌ Failed: ' + (err.message || res.statusText));
+                }
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

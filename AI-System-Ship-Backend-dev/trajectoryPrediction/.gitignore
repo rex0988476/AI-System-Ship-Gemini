@@ -1,0 +1,16 @@
+openProjects/
+data/
+linRex/
+*.pyc*
+*__pycache__/*
+*.pkl*
+*.npz*
+
+# Temp files
+aisStream/trajectory_tmp.json
+
+# API keys and secrets
+*key*
+.env
+*api_key*
+**/api.zsh

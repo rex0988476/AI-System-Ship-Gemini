@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Vessel Info & Suspicious Vessels API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f8f9fa;
+        }
+
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+
+        input {
+            padding: 8px;
+            width: 200px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 8px 14px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        pre {
+            background: #222;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .section {
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🚢 API 測試控制台</h1>
+
+    <div class="section">
+        <h2>⚠️ Suspicious Vessels 區域內可疑船隻列表</h2>
+        <label>緯度 (lat)：</label><br>
+        <input id="latInput" type="text" placeholder="ex: 23.974" /><br>
+        <label>經度 (lon)：</label><br>
+        <input id="lonInput" type="text" placeholder="ex: 120.973" /><br>
+        <label>半徑 (海里)：</label><br>
+        <input id="radiusInput" type="text" placeholder="ex: 150" /><br>
+        <button onclick="fetchSuspiciousVessels()">查詢</button>
+        <pre id="suspiciousOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>📍 Vessels Coord 區域內可疑船隻座標</h2>
+        <label>緯度 (lat)：</label><br>
+        <input id="coordLatInput" type="text" placeholder="ex: 23.974" /><br>
+        <label>經度 (lon)：</label><br>
+        <input id="coordLonInput" type="text" placeholder="ex: 120.973" /><br>
+        <label>半徑 (海里)：</label><br>
+        <input id="coordRadiusInput" type="text" placeholder="ex: 150" /><br>
+        <button onclick="fetchVesselsCoord()">查詢</button>
+        <pre id="vesselsCoordOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>🧭 Vessel Track 單船歷史軌跡</h2>
+        <label>MMSI：</label><br>
+        <input id="trackMmsiInput" type="text" placeholder="ex: 41200000" /><br>
+        <button onclick="fetchVesselTrack()">查詢</button>
+        <pre id="vesselTrackOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>ℹ️ Vessel Info 單船資訊</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="mmsiInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchVesselInfo()">查詢</button>
+        <pre id="vesselInfoOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>🐍 Meandering 威脅演算法──航跡遊蕩</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="meanderingInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchMeandering()">查詢</button>
+        <pre id="meanderingOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>🐌 Loitering 威脅演算法──航跡異常停留</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="loiteringInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchLoitering()">查詢</button>
+        <pre id="loiteringOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>📉 Speed Drop 威脅演算法──航速驟降</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="speedDropInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchSpeedDrop()">查詢</button>
+        <pre id="speedDropOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>🔕 AIS Switch 威脅演算法──走私區域內AIS頻繁開關</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="aisSwitchInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchAisSwitch()">查詢</button>
+        <pre id="aisSwitchOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>📡 Tracking Event 追蹤事件紀錄</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="trackingEventInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchTrackingEvent()">查詢</button>
+        <pre id="trackingEventOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>🚀 Dispatch Event 任務派遣紀錄</h2>
+        <label>輸入 MMSI：</label><br>
+        <input id="dispatchEventInput" type="text" placeholder="ex: 41200000" />
+        <button onclick="fetchDispatchEvent()">查詢</button>
+        <pre id="dispatchEventOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <script>
+        const HOST = '140.115.53.51';
+        const PORT = 3000;
+
+        // 共用的 Fetch 函式，減少重複代碼
+        async function fetchApi(endpoint, params, outputId) {
+            const output = document.getElementById(outputId);
+            const queryString = new URLSearchParams(params).toString();
+            // 注意：這裡假設所有路由都掛在 api/v1 下
+            const url = `http://${HOST}:${PORT}/api/v1/${endpoint}?${queryString}`;
+
+            try {
+                output.textContent = "⏳ 查詢中...";
+                const res = await fetch(url);
+
+                if (!res.ok) {
+                    // 嘗試解析錯誤 JSON，如果失敗則回傳 statusText
+                    const err = await res.json().catch(() => ({ error: res.statusText }));
+                    output.textContent = "❌ 錯誤：" + JSON.stringify(err, null, 2);
+                    return;
+                }
+
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+
+            } catch (error) {
+                output.textContent = "❌ 無法連線：" + error;
+            }
+        }
+
+        // --- 既有 API ---
+
+        function fetchVesselInfo() {
+            const mmsi = document.getElementById("mmsiInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('vesselInfo', { mmsi }, 'vesselInfoOutput');
+        }
+
+        function fetchSuspiciousVessels() {
+            const lat = document.getElementById("latInput").value.trim();
+            const lon = document.getElementById("lonInput").value.trim();
+            const radius = document.getElementById("radiusInput").value.trim();
+            if (!lat || !lon || !radius) return alert("請輸入 lat, lon, radius!");
+            fetchApi('suspiciousVessels', { lat, lon, radius }, 'suspiciousOutput');
+        }
+
+        function fetchVesselsCoord() {
+            const lat = document.getElementById("coordLatInput").value.trim();
+            const lon = document.getElementById("coordLonInput").value.trim();
+            const radius = document.getElementById("coordRadiusInput").value.trim();
+            if (!lat || !lon || !radius) return alert("請輸入 lat, lon, radius!");
+            fetchApi('vesselsCoord', { lat, lon, radius }, 'vesselsCoordOutput');
+        }
+
+        function fetchVesselTrack() {
+            const mmsi = document.getElementById("trackMmsiInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('vesselTrack', { mmsi }, 'vesselTrackOutput');
+        }
+
+        function fetchLoitering() {
+            const mmsi = document.getElementById("loiteringInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('loitering', { mmsi }, 'loiteringOutput');
+        }
+
+        function fetchSpeedDrop() {
+            const mmsi = document.getElementById("speedDropInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('speedDrop', { mmsi }, 'speedDropOutput');
+        }
+
+        function fetchAisSwitch() {
+            const mmsi = document.getElementById("aisSwitchInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('aisSwitch', { mmsi }, 'aisSwitchOutput');
+        }
+
+        function fetchMeandering() {
+            const mmsi = document.getElementById("meanderingInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('meandering', { mmsi }, 'meanderingOutput');
+        }
+
+        // --- 新增 API ---
+
+        function fetchTrackingEvent() {
+            const mmsi = document.getElementById("trackingEventInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('trackingEvent', { mmsi }, 'trackingEventOutput');
+        }
+
+        function fetchDispatchEvent() {
+            const mmsi = document.getElementById("dispatchEventInput").value.trim();
+            if (!mmsi) return alert("請輸入 MMSI!");
+            fetchApi('dispatchEvent', { mmsi }, 'dispatchEventOutput');
+        }
+
+    </script>
+
+</body>
+
+</html>

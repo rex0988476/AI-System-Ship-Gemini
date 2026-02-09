@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UIUX v2 Data Structure Check</title>
+    <style>
+        :root {
+            color-scheme: light;
+        }
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f6f7fb;
+            color: #1f2937;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 22px;
+        }
+        .meta {
+            color: #6b7280;
+            margin-bottom: 18px;
+        }
+        .section {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .section h2 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+        .row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .card {
+            flex: 1 1 280px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        button {
+            background: #2563eb;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 14px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .status {
+            font-weight: 600;
+            color: #0f766e;
+        }
+        .error {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .label {
+            font-size: 12px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1>UIUX v2 - API Data Structure Check</h1>
+    <div class="meta">
+        API: <span id="apiBase">...</span>
+        <span class="label" id="modeLabel"></span>
+    </div>
+    <button id="runBtn">Run API Test</button>
+    <span id="statusText" class="status"></span>
+
+    <div class="section">
+        <h2>Raw API Data</h2>
+        <div class="row">
+            <div class="card">
+                <div class="label">/suspiciousVessels</div>
+                <pre id="rawSuspicious">-</pre>
+            </div>
+            <div class="card">
+                <div class="label">/vesselInfo (sample)</div>
+                <pre id="rawInfo">-</pre>
+            </div>
+            <div class="card">
+                <div class="label">/vesselTrack (sample)</div>
+                <pre id="rawTrack">-</pre>
+            </div>
+            <div class="card">
+                <div class="label">/trackingEvent</div>
+                <pre id="rawTracking">-</pre>
+            </div>
+            <div class="card">
+                <div class="label">/dispatchEvent</div>
+                <pre id="rawDispatch">-</pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Normalized Structure (UIUX v2)</h2>
+        <div class="row" style="margin-bottom: 12px;">
+            <div class="card">
+                <div class="label">Filter by status</div>
+                <div id="statusFilters"></div>
+            </div>
+        </div>
+        <pre id="normalizedOutput">-</pre>
+    </div>
+
+    <script>
+        const HOST = "140.115.53.51";
+        const PORT = 3000;
+        const isLocalFile = window.location.protocol === "file:";
+        const BASE_URL = isLocalFile ? `http://${HOST}:${PORT}/api/v1` : "/api/v1";
+
+        document.getElementById("apiBase").textContent = BASE_URL;
+        document.getElementById("modeLabel").textContent = isLocalFile ? "(Local File Mode)" : "(Server Hosted Mode)";
+
+        const runBtn = document.getElementById("runBtn");
+        const statusText = document.getElementById("statusText");
+
+        const rawSuspicious = document.getElementById("rawSuspicious");
+        const rawInfo = document.getElementById("rawInfo");
+        const rawTrack = document.getElementById("rawTrack");
+        const rawTracking = document.getElementById("rawTracking");
+        const rawDispatch = document.getElementById("rawDispatch");
+        const normalizedOutput = document.getElementById("normalizedOutput");
+        const statusFilters = document.getElementById("statusFilters");
+        let lastNormalized = null;
+
+        const fetchJson = async (url) => {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+            return res.json();
+        };
+
+        const formatJson = (data) => JSON.stringify(data, null, 2);
+
+        const toHoursAgoTrack = (track) => {
+            if (!Array.isArray(track)) return [];
+            const now = Date.now();
+            return track
+                .map((entry) => {
+                    const coord = entry?.coord || [];
+                    const lat = Number(coord[0]);
+                    const lng = Number(coord[1]);
+                    if (!(Number.isFinite(lat) && Number.isFinite(lng))) return null;
+                    const ts = entry?.timestamp ? new Date(entry.timestamp).getTime() : NaN;
+                    const hoursAgo = Number.isFinite(ts) ? Math.max(0, Math.round((now - ts) / 36e5)) : null;
+                    return { lat, lng, time: entry?.timestamp || null, hoursAgo };
+                })
+                .filter(Boolean);
+        };
+
+        const normalizeVessel = (suspicious, info, track, statusSets, dispatchLookup) => {
+            const coord = suspicious?.coord || [];
+            const lat = Number(coord[0]);
+            const lng = Number(coord[1]);
+            const status = ["suspicious"];
+            const mmsi = String(suspicious?.mmsi || "");
+            if (statusSets?.tracking?.has(mmsi)) status.push("tracking");
+            if (statusSets?.dispatch?.has(mmsi)) status.push("dispatch");
+            if (!status.length) status.push("normal");
+            return {
+                mmsi,
+                vesselType: info?.vesselType ?? null,
+                aisFlag: Boolean(suspicious?.aisFlag),
+                status,
+                coord: Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null,
+                imoNum: info?.imoNum ?? null,
+                navStatus: info?.navStatus ?? null,
+                cog: info?.cog ?? null,
+                sog: info?.sog ?? null,
+                rfFreq: info?.rfFreq ?? null,
+                accuracy: info?.accuracy ?? null,
+                pulsesDuration: info?.pulsesDuration ?? null,
+                pulsesFreq: info?.pulsesFreq ?? null,
+                waveform: info?.waveform ?? null,
+                threatScore: suspicious?.threatScore ?? -1,
+                threatDetails: {
+                    meandering: null,
+                    loitering: null,
+                    speedDrop: null,
+                    aisSwitch: null,
+                },
+                trajectory: toHoursAgoTrack(track).slice(0, 3).map((entry) => ({
+                    lat: entry.lat,
+                    lng: entry.lng,
+                    time: entry.time
+                })),
+                dispatch: dispatchLookup?.get(mmsi) || null
+            };
+        };
+
+        const buildStats = (vessels) => {
+            const stats = {
+                aisOn: 0,
+                aisOff: 0,
+                threatHigh: 0,
+                threatMedium: 0,
+                threatLow: 0,
+            };
+            vessels.forEach((v) => {
+                if (v.aisFlag === true) stats.aisOn += 1;
+                if (v.aisFlag === false) stats.aisOff += 1;
+                if (v.threatScore >= 80) stats.threatHigh += 1;
+                else if (v.threatScore >= 60) stats.threatMedium += 1;
+                else if (v.threatScore >= 0) stats.threatLow += 1;
+            });
+            return stats;
+        };
+
+        const runTest = async () => {
+            statusText.textContent = "Loading...";
+            statusText.className = "status";
+            runBtn.disabled = true;
+
+            try {
+                const suspicious = await fetchJson(
+                    `${BASE_URL}/suspiciousVessels?lat=23.974&lon=120.973&radius=150`
+                );
+                rawSuspicious.textContent = formatJson(suspicious);
+
+                const sample = Array.isArray(suspicious) ? suspicious[0] : null;
+                const mmsi = sample?.mmsi;
+
+                let info = null;
+                let track = null;
+                if (mmsi) {
+                    info = await fetchJson(`${BASE_URL}/vesselInfo?mmsi=${encodeURIComponent(mmsi)}`);
+                    track = await fetchJson(`${BASE_URL}/vesselTrack?mmsi=${encodeURIComponent(mmsi)}`);
+                }
+
+                const infoSample = Array.isArray(info) ? info[0] : info;
+                rawInfo.textContent = infoSample ? formatJson(infoSample) : "No sample";
+                rawTrack.textContent = track ? formatJson(track.slice(0, 3)) : "No sample";
+
+                let trackingEvents = null;
+                let dispatchEvents = null;
+                try {
+                    trackingEvents = await fetchJson(`${BASE_URL}/trackingEvent`);
+                } catch (err) {
+                    trackingEvents = { error: err.message };
+                }
+                try {
+                    dispatchEvents = await fetchJson(`${BASE_URL}/dispatchEvent`);
+                } catch (err) {
+                    dispatchEvents = { error: err.message };
+                }
+
+                rawTracking.textContent = formatJson(trackingEvents);
+                rawDispatch.textContent = formatJson(dispatchEvents);
+
+                const trackingSet = new Set();
+                const dispatchSet = new Set();
+                const dispatchLookup = new Map();
+                const trackingList = Array.isArray(trackingEvents) ? trackingEvents : [];
+                const dispatchList = Array.isArray(dispatchEvents) ? dispatchEvents : [];
+                trackingList.forEach((event) => {
+                    if (event?.mmsi) trackingSet.add(String(event.mmsi));
+                });
+                dispatchList.forEach((event) => {
+                    if (!event?.mmsi) return;
+                    const mmsi = String(event.mmsi);
+                    dispatchSet.add(mmsi);
+                    dispatchLookup.set(mmsi, {
+                        status: event.status || "scheduled",
+                        time: event.excuteTime || event.dispatchTime || null,
+                        target: Array.isArray(event.excuteCoord) && event.excuteCoord.length === 2
+                            ? { lat: event.excuteCoord[0], lng: event.excuteCoord[1] }
+                            : (Array.isArray(event.dispatchCoord) && event.dispatchCoord.length === 2
+                                ? { lat: event.dispatchCoord[0], lng: event.dispatchCoord[1] }
+                                : null)
+                    });
+                });
+
+                const statusSets = { tracking: trackingSet, dispatch: dispatchSet };
+                const vessels = Array.isArray(suspicious)
+                    ? suspicious.slice(0, 5).map((item) => normalizeVessel(item, info, track, statusSets, dispatchLookup))
+                    : [];
+                const normalized = {
+                    region: {
+                        center: { lat: 23.974, lng: 120.973 },
+                        radiusNm: 150
+                    },
+                    vessels,
+                    suspiciousVessels: Array.isArray(suspicious) ? suspicious.slice(0, 5) : [],
+                    stats: buildStats(vessels)
+                };
+
+                lastNormalized = normalized;
+                normalizedOutput.textContent = formatJson(normalized);
+                renderStatusFilters(normalized.vessels);
+                statusText.textContent = "OK";
+            } catch (err) {
+                statusText.textContent = `Failed: ${err.message}`;
+                statusText.className = "error";
+            } finally {
+                runBtn.disabled = false;
+            }
+        };
+
+        const renderStatusFilters = (vessels) => {
+            const uniqueStatuses = new Set(["tracking", "dispatch", "suspicious", "normal"]);
+            vessels.forEach((vessel) => {
+                (vessel?.status || []).forEach((status) => uniqueStatuses.add(status));
+            });
+            statusFilters.innerHTML = "";
+
+            if (!uniqueStatuses.size) {
+                statusFilters.textContent = "No statuses";
+                return;
+            }
+
+            Array.from(uniqueStatuses).sort().forEach((status) => {
+                const label = document.createElement("label");
+                label.style.marginRight = "12px";
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = status;
+                checkbox.checked = true;
+                checkbox.addEventListener("change", () => {
+                    if (!lastNormalized) return;
+                    const enabled = new Set(
+                        Array.from(statusFilters.querySelectorAll("input:checked")).map((el) => el.value)
+                    );
+                    const filtered = lastNormalized.vessels.filter((vessel) =>
+                        (vessel?.status || []).some((s) => enabled.has(s))
+                    );
+                    const output = {
+                        ...lastNormalized,
+                        vessels: filtered,
+                        stats: buildStats(filtered)
+                    };
+                    normalizedOutput.textContent = formatJson(output);
+                });
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(` ${status}`));
+                statusFilters.appendChild(label);
+            });
+        };
+
+        runBtn.addEventListener("click", runTest);
+    </script>
+</body>
+</html>

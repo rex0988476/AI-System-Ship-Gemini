@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2025-12-22T04:04:31.941Z",
+  "toleranceSeconds": 30,
+  "expectedSeconds": 360,
+  "summary": {
+    "41200000": {
+      "intervals": 240,
+      "ok": 240,
+      "percent": "100.00",
+      "anomalies": []
+    },
+    "41200001": {
+      "intervals": 240,
+      "ok": 240,
+      "percent": "100.00",
+      "anomalies": []
+    },
+    "41200002": {
+      "intervals": 240,
+      "ok": 240,
+      "percent": "100.00",
+      "anomalies": []
+    },
+    "41200003": {
+      "intervals": 240,
+      "ok": 240,
+      "percent": "100.00",
+      "anomalies": []
+    },
+    "41200004": {
+      "intervals": 210,
+      "ok": 210,
+      "percent": "100.00",
+      "anomalies": []
+    }
+  }
+}

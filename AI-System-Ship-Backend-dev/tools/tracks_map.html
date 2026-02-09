@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>船隻歷史軌跡視覺化</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 100%; }
+        .info-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .legend-item {
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div class="info-box" id="legend">
+        <h3>船隻列表 (點擊切換)</h3>
+    </div>
+
+    <!-- 載入資料 -->
+    <script src="tracks_data.js"></script>
+
+    <script>
+        // 初始化地圖
+        const map = L.map('map').setView([23.5, 121], 7);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // 顏色庫
+        const colors = [
+            '#FF0000', // 紅
+            '#0000FF', // 藍
+            '#008000', // 綠
+            '#FFA500', // 橘
+            '#800080', // 紫
+            '#00FFFF', // 青
+            '#FF00FF', // 洋紅
+            '#A52A2A'  // 棕
+        ];
+
+        const layers = {};
+        let colorIndex = 0;
+
+        // 繪製軌跡
+        if (typeof tracksData !== 'undefined') {
+            const legend = document.getElementById('legend');
+
+            Object.keys(tracksData).forEach(mmsi => {
+                const track = tracksData[mmsi];
+                if (!track || track.length === 0) return;
+
+                // 提取座標點 [lat, lon]
+                const latlngs = track.map(p => [p.lat, p.lon]);
+                
+                // 隨機或依序分配顏色
+                const color = colors[colorIndex % colors.length];
+                colorIndex++;
+
+                // 建立 Polyline
+                const polyline = L.polyline(latlngs, {
+                    color: color,
+                    weight: 3,
+                    opacity: 0.8
+                });
+
+                // 加入 Popup 資訊
+                polyline.bindPopup(`<b>MMSI: ${mmsi}</b><br>Points: ${track.length}<br>Start: ${track[track.length-1].time}<br>End: ${track[0].time}`);
+
+                // 加入地圖
+                polyline.addTo(map);
+                layers[mmsi] = polyline;
+
+                // 繪製所有點
+                track.forEach((p, index) => {
+                    const isStart = index === track.length - 1;
+                    const isEnd = index === 0;
+                    
+                    let radius = 3;
+                    let fillColor = color;
+                    let strokeColor = color;
+
+                    if (isStart) {
+                        radius = 6;
+                        fillColor = '#0f0'; // 綠色
+                        strokeColor = 'green';
+                    } else if (isEnd) {
+                        radius = 6;
+                        fillColor = '#f00'; // 紅色
+                        strokeColor = 'red';
+                    }
+
+                    const marker = L.circleMarker([p.lat, p.lon], {
+                        radius: radius,
+                        color: strokeColor,
+                        fillColor: fillColor,
+                        fillOpacity: 0.8,
+                        weight: 1
+                    });
+
+                    marker.bindPopup(`
+                        <b>MMSI: ${mmsi}</b><br>
+                        Time: ${p.time}<br>
+                        SOG: ${p.sog} kn<br>
+                        COG: ${p.cog}°
+                    `);
+                    
+                    marker.addTo(map);
+                    
+                    // 將點也加入 layers 管理，以便開關
+                    if (!layers[mmsi].markers) layers[mmsi].markers = [];
+                    layers[mmsi].markers.push(marker);
+                });
+
+                // 更新圖例
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `<div class="color-box" style="background:${color}"></div> MMSI: ${mmsi}`;
+                item.onclick = () => {
+                    const layer = layers[mmsi];
+                    if (map.hasLayer(layer)) {
+                        map.removeLayer(layer);
+                        layer.markers.forEach(m => map.removeLayer(m));
+                        item.style.opacity = '0.5';
+                    } else {
+                        map.addLayer(layer);
+                        layer.markers.forEach(m => map.addLayer(m));
+                        item.style.opacity = '1';
+                    }
+                };
+                legend.appendChild(item);
+            });
+
+            // 自動調整視野以涵蓋所有軌跡
+            const group = new L.featureGroup(Object.values(layers));
+            map.fitBounds(group.getBounds());
+
+        } else {
+            alert('找不到軌跡資料 (tracks_data.js)，請先執行測試腳本。');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Predict Trajectory Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { padding: 6px 8px; width: 220px; }
+    button { padding: 6px 10px; margin-left: 6px; }
+    pre { background: #f4f4f4; padding: 12px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h2>Predict Trajectory API Test</h2>
+  <p>GET /api/v1/predictTraj?mmsi=...</p>
+  <input id="mmsiInput" type="text" placeholder="ex: 525021186" value="41200006" />
+  <button id="predictBtn">Predict</button>
+  <pre id="output">結果會顯示在這裡...</pre>
+
+  <script>
+    const BASE_URL = "http://127.0.0.1:3000/api/v1";
+    const output = document.getElementById("output");
+    const input = document.getElementById("mmsiInput");
+    const btn = document.getElementById("predictBtn");
+
+    async function fetchPredict(mmsi) {
+      try {
+        const res = await fetch(`${BASE_URL}/predictTraj?mmsi=${encodeURIComponent(mmsi)}`);
+        const text = await res.text();
+        output.textContent = text;
+      } catch (err) {
+        output.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    btn.addEventListener("click", () => {
+      const mmsi = input.value.trim();
+      if (!mmsi) {
+        output.textContent = "Please enter MMSI.";
+        return;
+      }
+      fetchPredict(mmsi);
+    });
+  </script>
+</body>
+</html>

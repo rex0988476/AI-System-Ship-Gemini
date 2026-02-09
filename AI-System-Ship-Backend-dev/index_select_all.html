@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI System Ship Backend - Select All Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.5; }
+        .section { margin-bottom: 24px; padding: 16px; border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 8px 12px; margin-top: 8px; }
+        pre { background: #f6f6f6; padding: 12px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>Select All - Tracking & Dispatch</h1>
+
+    <div class="section">
+        <h2>Tracking Events (All)</h2>
+        <button onclick="fetchTrackingAll()">Fetch All Tracking Events</button>
+        <pre id="trackingAllOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <div class="section">
+        <h2>Dispatch Events (All)</h2>
+        <button onclick="fetchDispatchAll()">Fetch All Dispatch Events</button>
+        <pre id="dispatchAllOutput">結果會顯示在這裡...</pre>
+    </div>
+
+    <script>
+        const HOST = '140.115.53.51';
+        const PORT = 3000;
+
+        async function fetchApi(endpoint, outputId) {
+            const output = document.getElementById(outputId);
+            const url = `http://${HOST}:${PORT}/api/v1/${endpoint}`;
+            try {
+                output.textContent = "⏳ 查詢中...";
+                const res = await fetch(url);
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({ error: res.statusText }));
+                    output.textContent = "❌ 錯誤：" + JSON.stringify(err, null, 2);
+                    return;
+                }
+                const data = await res.json();
+                output.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                output.textContent = "❌ 無法連線：" + error;
+            }
+        }
+
+        function fetchTrackingAll() {
+            fetchApi('trackingEvent', 'trackingAllOutput');
+        }
+
+        function fetchDispatchAll() {
+            fetchApi('dispatchEvent', 'dispatchAllOutput');
+        }
+    </script>
+</body>
+</html>
