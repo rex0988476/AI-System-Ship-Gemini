@@ -1,6 +1,0 @@
-2025-08-25 01:20:29,816 - autogen_rag_tpm_ship_junior_conversation - INFO - Logging initialized for tpm_ship_junior_conversation, log file: log/tpm_ship_junior_conversation-20250825_012029.log
-2025-08-25 01:20:29,816 - autogen_rag_tpm_ship_junior_conversation - INFO - === Starting TPM + Ship Junior Engineer Conversation ===
-2025-08-25 01:20:29,816 - autogen_rag_tpm_ship_junior_conversation - INFO - Query: 
-    我們需要開發一個船隻辨識系統，請問要如何開始這項計畫的開發？你會有甚麼建議？
-    
-2025-08-25 01:20:29,816 - autogen_rag_tpm_ship_junior_conversation - INFO - Max rounds: 10

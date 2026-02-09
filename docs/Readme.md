@@ -1,1 +1,0 @@
-This is the directory of UIUX page for github.io
